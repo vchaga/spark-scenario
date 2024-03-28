@@ -1,0 +1,7 @@
+pyspark==3.5.0
+jupyterlab
+jupyter-contrib-core
+jupyter-contrib-nbextensions
+ipython
+findspark
+awscli
