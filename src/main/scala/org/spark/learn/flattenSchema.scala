@@ -52,10 +52,10 @@ object flattenSchema {
     dfJson.show()
 
     // Function to flatten the DataFrame
-    def flattenSchema(df: DataFrame): DataFrame = {
+    /*def flattenSchema(df: DataFrame): DataFrame = {
       val fields = df.schema.fields
       val fieldNames = fields.map(_.name)
-      
+
       println("Fields: " + fields.mkString(", ")) // Debug statement to print fields
       println("Field Names: " + fieldNames.mkString(", ")) // Debug statement to print field names
 
@@ -70,7 +70,41 @@ object flattenSchema {
         }
       })
 
+
       df.select(flattenedFields: _*)
+    }*/
+
+    // Function to flatten the DataFrame
+    def flattenSchema(df: DataFrame): DataFrame = {
+      var dfToFlatten = df
+      var doContinue = true
+
+      while (doContinue) {
+        val fields = dfToFlatten.schema.fields
+        println("Fields: " + fields.mkString(", ")) // Debug statement to print fields
+
+        val fieldNames = fields.map(_.name)
+        println("Field Names: " + fieldNames.mkString(", ")) // Debug statement to print field names
+
+        val flattenedFields = fields.flatMap(f => {
+          f.dataType match {
+            case structType: StructType =>
+              structType.fields.map(structField => col(s"${f.name}.${structField.name}").alias(s"${f.name}_${structField.name}"))
+            case arrayType: ArrayType =>
+              // Explode the array and create columns for its elements
+              Seq(explode_outer(col(f.name)).alias(f.name))
+            case _ => Seq(col(f.name))
+          }
+        })
+
+        // Select the flattened fields
+        dfToFlatten = dfToFlatten.select(flattenedFields: _*)
+
+        // Check if any struct or array type is still present
+        doContinue = dfToFlatten.schema.fields.exists(f => f.dataType.isInstanceOf[StructType] || f.dataType.isInstanceOf[ArrayType])
+      }
+
+      dfToFlatten
     }
 
     // Flatten the DataFrame
@@ -82,8 +116,8 @@ object flattenSchema {
     // Show the flattened DataFrame
     flattenedDF.show(false)
 
-    //flattenedDF.write.option("header",true)
-    //.csv("file:///c:/users/venka/Onedrive/desktop/BD/Data/parfile1.csv")
+    flattenedDF.write.option("header",true)
+    .csv("file:///c:/users/venka/Onedrive/desktop/BD/Data/parfile2.csv")
 
   }
 
